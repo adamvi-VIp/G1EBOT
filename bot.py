@@ -163,6 +163,20 @@ async def delete_name(ctx, *, name: str):
     else:
         await ctx.send(f"The name `{name}` was not found in the list.")
 
+# Command to list names from the list (Admin only, Server only)
+@bot.command()
+@commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
+async def list(ctx):
+    if ctx.guild is None:  # Check if the command is in a server
+        await ctx.send("This command can only be used in a server.")
+        return
+    names = list(password_data.keys())
+    if names:
+        names_list = "\n".join(names)
+        await ctx.send(f"**Names in the list:**\n{names_list}")
+    else:
+        await ctx.send("The name list is currently empty.")
+
 # Help command (Server only)
 @bot.command()
 async def help(ctx):
@@ -174,6 +188,7 @@ async def help(ctx):
     - `!verify your full name`: Verify your identity by providing your full name (only usable in DMs).
     - `!add_name name`: (Admin only) Add a new name to the verification list.
     - `!delete_name name`: (Admin only) Remove a name from the verification list.
+    - `!list`: (Admin only) List all names in the verification list.
     - `!help`: Display this help message.
     """
     await ctx.send(help_text)
