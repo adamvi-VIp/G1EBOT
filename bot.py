@@ -114,8 +114,16 @@ async def verify(ctx, *, otp: str):
     guild = bot.guilds[0]
     role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
 
+    # Fetch the member from the guild using their ID
+    member_in_guild = guild.get_member(member.id)
+
+    # Check if the member exists in the guild
+    if member_in_guild is None:
+        await ctx.send("Could not find you in the server. Please make sure you're a member of the server.")
+        return
+
     # Check if the member already has the verified role
-    if role in member.roles:
+    if role in member_in_guild.roles:
         await member.send("You are already verified. No further action is required.")
         return
 
@@ -133,20 +141,15 @@ async def verify(ctx, *, otp: str):
             await member.send("Verified role not found. Please contact an admin.")
             return
 
-        member = guild.get_member(member.id)
-        if member is None:
-            await ctx.send("Couldn't find you in the server.")
-            return
-
-        # Assign the verified role and update nickname
-        await member.add_roles(role)
-        await member.edit(nick=exact_name)
+        # Assign the verified role and update the nickname
+        await member_in_guild.add_roles(role)
+        await member_in_guild.edit(nick=exact_name)
 
         await member.send("Your name is on the list! You now have access to the server.")
 
         general_channel = discord.utils.get(guild.channels, name="general")
         if general_channel:
-            await general_channel.send(f"Welcome {member.mention}, access granted!")
+            await general_channel.send(f"Welcome {member_in_guild.mention}, access granted!")
 
         # Only delete the name from the password list if the user was successfully verified
         del password_data[exact_name]
@@ -216,14 +219,11 @@ async def help(ctx):
     **Available Commands:**
     - `!verify your full name`: Verify your identity by providing your full name (only usable in DMs).
     - `!add_name name`: (Admin only) Add a new name to the verification list.
-    - `!delete_name name`: (Admin only) Remove a name from the verification list.
-    - `!ping`: (Admin only) Send reminder messages to unverified users.
-    - `!help`: Display this help message.
+    - `!delete_name name`: (Admin only) Delete a name from the verification list.
+    - `!ping`: (Admin only) DM all unverified users with a reminder to verify.
     """
     await ctx.send(help_text)
 
-# Keep the bot alive using Flask
+# Start Flask app and bot
 keep_alive()
-
-# Run the bot with your token
 bot.run("MTI4NTY4MjI2ODAzOTU0NDgzMg.G4Ecqv.UkceLHkH4wVEEKi_vmbHZsf7fcB-SL2Ge9l84c")
