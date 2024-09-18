@@ -19,7 +19,7 @@ except FileNotFoundError:
 # Set up intents and bot
 intents = discord.Intents.default()
 intents.members = True  # Enable member events
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # Role and Channel names
 VERIFIED_ROLE_NAME = "Elita Národa"
