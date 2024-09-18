@@ -9,6 +9,13 @@ import threading
 with open("passwords.json", "r", encoding="utf-8") as f:
     password_data = json.load(f)
 
+# Load the list of users who have already been messaged
+try:
+    with open("messaged_users.json", "r", encoding="utf-8") as f:
+        messaged_users = set(json.load(f))
+except FileNotFoundError:
+    messaged_users = set()
+
 # Set up intents and bot
 intents = discord.Intents.default()
 intents.members = True  # Enable member events
@@ -17,6 +24,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Role and Channel names
 VERIFIED_ROLE_NAME = "Elita Národa"
 WELCOME_CHANNEL_NAME = "welcome"
+ADMIN_ROLE_NAME = "Admin"  # Replace this with your actual admin role name
 
 # Flask app for uptime monitoring
 app = Flask('')
@@ -64,9 +72,13 @@ async def dm_unverified_users():
         return
 
     for member in guild.members:
-        if not member.bot and role not in member.roles:
+        if not member.bot and role not in member.roles and str(member.id) not in messaged_users:
             try:
-                await member.send(f"**Welcome** {member.mention}! Please provide your one-time full name to access the G1.E, **using command !verify yourfullname.**")
+                await member.send(f"**Welcome** {member.mention}! Please provide your one-time full name to access the G1.E,
+                                   **using command !verify your full name.**")
+                messaged_users.add(str(member.id))
+                with open("messaged_users.json", "w", encoding="utf-8") as f:
+                    json.dump(list(messaged_users), f, ensure_ascii=False)
             except discord.Forbidden:
                 print(f"Could not DM {member.name}.")
             await asyncio.sleep(1)
@@ -76,11 +88,16 @@ async def on_member_join(member):
     guild = member.guild
     welcome_channel = discord.utils.get(guild.channels, name=WELCOME_CHANNEL_NAME)
 
-    try:
-        await member.send(f"**Welcome** {member.mention}! Please provide your one-time full name to access the G1.E, **using command !verify yourfullname.**")
-    except discord.Forbidden:
-        if welcome_channel:
-            await welcome_channel.send(f"Hey {member.mention}, I couldn't DM you! Please check your settings and try again.")
+    if str(member.id) not in messaged_users:
+        try:
+            await member.send(f"**Welcome** {member.mention}! Please provide your one-time full name to access the G1.E,
+                               **using command !verify your full name.**")
+            messaged_users.add(str(member.id))
+            with open("messaged_users.json", "w", encoding="utf-8") as f:
+                json.dump(list(messaged_users), f, ensure_ascii=False)
+        except discord.Forbidden:
+            if welcome_channel:
+                await welcome_channel.send(f"Hey {member.mention}, I couldn't DM you! Please check your settings and try again.")
 
 @bot.command()
 async def verify(ctx, *, otp: str):
@@ -116,6 +133,42 @@ async def verify(ctx, *, otp: str):
             json.dump(password_data, f, ensure_ascii=False)
     else:
         await member.send("The name you provided is not on the list. Please try again or contact admin.")
+
+# Command to add a new name to the list
+@bot.command()
+@commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
+async def add_name(ctx, *, name: str):
+    if name in password_data:
+        await ctx.send(f"The name `{name}` is already in the list.")
+    else:
+        password_data[name] = True
+        with open("passwords.json", "w", encoding="utf-8") as f:
+            json.dump(password_data, f, ensure_ascii=False)
+        await ctx.send(f"Added `{name}` to the list.")
+
+# Command to delete a name from the list
+@bot.command()
+@commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
+async def delete_name(ctx, *, name: str):
+    if name in password_data:
+        del password_data[name]
+        with open("passwords.json", "w", encoding="utf-8") as f:
+            json.dump(password_data, f, ensure_ascii=False)
+        await ctx.send(f"Deleted `{name}` from the list.")
+    else:
+        await ctx.send(f"The name `{name}` was not found in the list.")
+
+# Help command to provide a list of available commands
+@bot.command()
+async def help(ctx):
+    help_text = """
+    **Available Commands:**
+    - `!verify your full name`: Verify your identity by providing your full name (only usable in DMs).
+    - `!add_name name`: (Admin only) Add a new name to the verification list.
+    - `!delete_name name`: (Admin only) Remove a name from the verification list.
+    - `!help`: Display this help message.
+    """
+    await ctx.send(help_text)
 
 # Keep the bot alive using Flask
 keep_alive()
