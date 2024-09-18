@@ -170,14 +170,43 @@ async def list(ctx):
     if ctx.guild is None:  # Check if the command is in a server
         await ctx.send("This command can only be used in a server.")
         return
+    
+    # Ensure names is a list
     names = list(password_data.keys())
-    if names:
-        names_list = "\n".join(names)
-        await ctx.send(f"**Names in the list:**\n{names_list}")
+    
+    if isinstance(names, list):
+        if names:
+            names_list = "\n".join(names)
+            await ctx.send(f"**Names in the list:**\n{names_list}")
+        else:
+            await ctx.send("The name list is currently empty.")
     else:
-        await ctx.send("The name list is currently empty.")
+        await ctx.send("There was an error retrieving the name list.")
 
-# Help command (Server only)
+# Command to ping users without Verified role (Admin only, Server only)
+@bot.command()
+@commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
+async def ping(ctx):
+    if ctx.guild is None:  # Check if the command is in a server
+        await ctx.send("This command can only be used in a server.")
+        return
+
+    role = discord.utils.get(ctx.guild.roles, name=VERIFIED_ROLE_NAME)
+    if role is None:
+        await ctx.send("Verified role not found.")
+        return
+
+    for member in ctx.guild.members:
+        if not member.bot and role not in member.roles and str(member.id) not in messaged_users:
+            try:
+                await member.send(f"**Reminder:** {member.mention}, please provide your full name to access the G1.E, **using command !verify your full name.**")
+                messaged_users.add(str(member.id))
+                with open("messaged_users.json", "w", encoding="utf-8") as f:
+                    json.dump(list(messaged_users), f, ensure_ascii=False)
+            except discord.Forbidden:
+                print(f"Could not DM {member.name}.")
+            await asyncio.sleep(1)
+
 @bot.command()
 async def help(ctx):
     if ctx.guild is None:  # Check if the command is in a server
@@ -189,6 +218,7 @@ async def help(ctx):
     - `!add_name name`: (Admin only) Add a new name to the verification list.
     - `!delete_name name`: (Admin only) Remove a name from the verification list.
     - `!list`: (Admin only) List all names in the verification list.
+    - `!ping`: (Admin only) Send reminder messages to unverified users.
     - `!help`: Display this help message.
     """
     await ctx.send(help_text)
