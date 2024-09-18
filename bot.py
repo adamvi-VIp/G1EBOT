@@ -114,6 +114,10 @@ async def verify(ctx, *, otp: str):
     guild = bot.guilds[0]
     role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
 
+    if role in member.roles:
+        await member.send("You already have the verified role. No need to use the `!verify` command.")
+        return
+
     normalized_otp = normalize_string(otp)
     exact_name = None
 
