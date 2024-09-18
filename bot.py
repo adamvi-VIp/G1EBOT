@@ -132,10 +132,13 @@ async def verify(ctx, *, otp: str):
     else:
         await member.send("The name you provided is not on the list. Please try again or contact admin.")
 
-# Command to add a new name to the list
+# Command to add a new name to the list (Admin only, Server only)
 @bot.command()
 @commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
 async def add_name(ctx, *, name: str):
+    if ctx.guild is None:  # Check if the command is in a server
+        await ctx.send("This command can only be used in a server.")
+        return
     if name in password_data:
         await ctx.send(f"The name `{name}` is already in the list.")
     else:
@@ -144,10 +147,13 @@ async def add_name(ctx, *, name: str):
             json.dump(password_data, f, ensure_ascii=False)
         await ctx.send(f"Added `{name}` to the list.")
 
-# Command to delete a name from the list
+# Command to delete a name from the list (Admin only, Server only)
 @bot.command()
 @commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
 async def delete_name(ctx, *, name: str):
+    if ctx.guild is None:  # Check if the command is in a server
+        await ctx.send("This command can only be used in a server.")
+        return
     if name in password_data:
         del password_data[name]
         with open("passwords.json", "w", encoding="utf-8") as f:
@@ -156,9 +162,12 @@ async def delete_name(ctx, *, name: str):
     else:
         await ctx.send(f"The name `{name}` was not found in the list.")
 
-# Help command to provide a list of available commands
+# Help command (Server only)
 @bot.command()
 async def help(ctx):
+    if ctx.guild is None:  # Check if the command is in a server
+        await ctx.send("This command can only be used in a server.")
+        return
     help_text = """
     **Available Commands:**
     - `!verify your full name`: Verify your identity by providing your full name (only usable in DMs).
