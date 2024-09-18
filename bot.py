@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import asyncio
+import unicodedata
 from flask import Flask
 import threading
 
@@ -40,6 +41,10 @@ def run_flask():
 def keep_alive():
     t = threading.Thread(target=run_flask)
     t.start()
+
+def remove_diacritics(s):
+    return ''.join(c for c in unicodedata.normalize('NFD', s)
+                   if unicodedata.category(c) != 'Mn')
 
 @bot.event
 async def on_ready():
@@ -108,7 +113,16 @@ async def verify(ctx, *, otp: str):
     guild = bot.guilds[0]
     role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
 
-    if otp in password_data:
+    normalized_otp = remove_diacritics(otp)
+    exact_name = None
+
+    # Find the exact name with diacritics
+    for name in password_data:
+        if remove_diacritics(name) == normalized_otp:
+            exact_name = name
+            break
+
+    if exact_name:
         if role is None:
             await member.send("Verified role not found. Please contact an admin.")
             return
@@ -119,7 +133,7 @@ async def verify(ctx, *, otp: str):
             return
 
         await member.add_roles(role)
-        await member.edit(nick=otp)
+        await member.edit(nick=exact_name)
 
         await member.send("Your name is on the list! You now have access to the server.")
 
@@ -127,7 +141,7 @@ async def verify(ctx, *, otp: str):
         if general_channel:
             await general_channel.send(f"Welcome {member.mention}, access granted!")
 
-        del password_data[otp]
+        del password_data[exact_name]
         with open("passwords.json", "w", encoding="utf-8") as f:
             json.dump(password_data, f, ensure_ascii=False)
     else:
@@ -163,34 +177,6 @@ async def delete_name(ctx, *, name: str):
     else:
         await ctx.send(f"The name `{name}` was not found in the list.")
 
-# Command to list names from the list (Admin only, Server only)
-@bot.command()
-@commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
-async def list(ctx):
-    if ctx.guild is None:  # Check if the command is in a server
-        await ctx.send("This command can only be used in a server.")
-        return
-    
-    # Load the names from the JSON file
-    try:
-        with open("passwords.json", "r", encoding="utf-8") as f:
-            password_data = json.load(f)
-    except FileNotFoundError:
-        await ctx.send("The password file does not exist.")
-        return
-    except json.JSONDecodeError:
-        await ctx.send("There was an error decoding the password file.")
-        return
-    
-    # Ensure names is a list
-    names = list(password_data.keys())
-    
-    if names:  # Check if names is not empty
-        names_list = "\n".join(names)
-        await ctx.send(f"**Names in the list:**\n{names_list}")
-    else:
-        await ctx.send("The name list is currently empty.")
-
 # Command to send reminder messages to unverified users (Admin only, Server only)
 @bot.command()
 @commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
@@ -223,7 +209,6 @@ async def help(ctx):
     - `!verify your full name`: Verify your identity by providing your full name (only usable in DMs).
     - `!add_name name`: (Admin only) Add a new name to the verification list.
     - `!delete_name name`: (Admin only) Remove a name from the verification list.
-    - `!list`: (Admin only) List all names in the verification list.
     - `!ping`: (Admin only) Send reminder messages to unverified users.
     - `!help`: Display this help message.
     """
