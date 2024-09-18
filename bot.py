@@ -171,19 +171,27 @@ async def list(ctx):
         await ctx.send("This command can only be used in a server.")
         return
     
+    # Load the names from the JSON file
+    try:
+        with open("passwords.json", "r", encoding="utf-8") as f:
+            password_data = json.load(f)
+    except FileNotFoundError:
+        await ctx.send("The password file does not exist.")
+        return
+    except json.JSONDecodeError:
+        await ctx.send("There was an error decoding the password file.")
+        return
+    
     # Ensure names is a list
     names = list(password_data.keys())
     
-    if isinstance(names, list):
-        if names:
-            names_list = "\n".join(names)
-            await ctx.send(f"**Names in the list:**\n{names_list}")
-        else:
-            await ctx.send("The name list is currently empty.")
+    if names:  # Check if names is not empty
+        names_list = "\n".join(names)
+        await ctx.send(f"**Names in the list:**\n{names_list}")
     else:
-        await ctx.send("There was an error retrieving the name list.")
+        await ctx.send("The name list is currently empty.")
 
-# Command to ping users without Verified role (Admin only, Server only)
+# Command to send reminder messages to unverified users (Admin only, Server only)
 @bot.command()
 @commands.has_role(ADMIN_ROLE_NAME)  # Restrict to Admin role
 async def ping(ctx):
@@ -199,7 +207,7 @@ async def ping(ctx):
     for member in ctx.guild.members:
         if not member.bot and role not in member.roles and str(member.id) not in messaged_users:
             try:
-                await member.send(f"**Reminder:** {member.mention}, please provide your full name to access the G1.E, **using command !verify your full name.**")
+                await member.send(f"**Reminder** {member.mention}, please provide your full name to access the G1.E using the command `!verify your full name`.")
                 messaged_users.add(str(member.id))
                 with open("messaged_users.json", "w", encoding="utf-8") as f:
                     json.dump(list(messaged_users), f, ensure_ascii=False)
@@ -207,11 +215,9 @@ async def ping(ctx):
                 print(f"Could not DM {member.name}.")
             await asyncio.sleep(1)
 
+# Help command to provide a list of available commands
 @bot.command()
 async def help(ctx):
-    if ctx.guild is None:  # Check if the command is in a server
-        await ctx.send("This command can only be used in a server.")
-        return
     help_text = """
     **Available Commands:**
     - `!verify your full name`: Verify your identity by providing your full name (only usable in DMs).
