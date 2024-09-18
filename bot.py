@@ -106,7 +106,6 @@ async def on_member_join(member):
 
 @bot.command()
 async def verify(ctx, *, otp: str):
-    # Check if the command is used in a DM
     if not isinstance(ctx.channel, discord.DMChannel):
         await ctx.send("This command can only be used in DMs.")
         return
@@ -115,9 +114,9 @@ async def verify(ctx, *, otp: str):
     guild = bot.guilds[0]
     role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
 
-    # Check if the user already has the verified role
+    # Check if the member already has the verified role
     if role in member.roles:
-        await ctx.send("You already have the verified role. No need to use the `!verify` command.")
+        await member.send("You are already verified. No further action is required.")
         return
 
     normalized_otp = normalize_string(otp)
@@ -131,7 +130,7 @@ async def verify(ctx, *, otp: str):
 
     if exact_name:
         if role is None:
-            await ctx.send("Verified role not found. Please contact an admin.")
+            await member.send("Verified role not found. Please contact an admin.")
             return
 
         member = guild.get_member(member.id)
@@ -139,22 +138,22 @@ async def verify(ctx, *, otp: str):
             await ctx.send("Couldn't find you in the server.")
             return
 
-        # Add role and update nickname
+        # Assign the verified role and update nickname
         await member.add_roles(role)
         await member.edit(nick=exact_name)
 
-        # Notify the user and the general channel
-        await ctx.send("Your name is on the list! You now have access to the server.")
+        await member.send("Your name is on the list! You now have access to the server.")
+
         general_channel = discord.utils.get(guild.channels, name="general")
         if general_channel:
             await general_channel.send(f"Welcome {member.mention}, access granted!")
 
-        # Remove the name from the list
+        # Only delete the name from the password list if the user was successfully verified
         del password_data[exact_name]
         with open("passwords.json", "w", encoding="utf-8") as f:
             json.dump(password_data, f, ensure_ascii=False)
     else:
-        await ctx.send("The name you provided is not on the list. Please try again or contact admin.")
+        await member.send("The name you provided is not on the list. Please try again or contact admin.")
 
 # Command to add a new name to the list (Admin only, Server only)
 @bot.command()
