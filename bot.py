@@ -106,6 +106,7 @@ async def on_member_join(member):
 
 @bot.command()
 async def verify(ctx, *, otp: str):
+    # Check if the command is used in a DM
     if not isinstance(ctx.channel, discord.DMChannel):
         await ctx.send("This command can only be used in DMs.")
         return
@@ -114,8 +115,9 @@ async def verify(ctx, *, otp: str):
     guild = bot.guilds[0]
     role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
 
+    # Check if the user already has the verified role
     if role in member.roles:
-        await member.send("You already have the verified role. No need to use the `!verify` command.")
+        await ctx.send("You already have the verified role. No need to use the `!verify` command.")
         return
 
     normalized_otp = normalize_string(otp)
@@ -129,7 +131,7 @@ async def verify(ctx, *, otp: str):
 
     if exact_name:
         if role is None:
-            await member.send("Verified role not found. Please contact an admin.")
+            await ctx.send("Verified role not found. Please contact an admin.")
             return
 
         member = guild.get_member(member.id)
@@ -137,20 +139,22 @@ async def verify(ctx, *, otp: str):
             await ctx.send("Couldn't find you in the server.")
             return
 
+        # Add role and update nickname
         await member.add_roles(role)
         await member.edit(nick=exact_name)
 
-        await member.send("Your name is on the list! You now have access to the server.")
-
+        # Notify the user and the general channel
+        await ctx.send("Your name is on the list! You now have access to the server.")
         general_channel = discord.utils.get(guild.channels, name="general")
         if general_channel:
             await general_channel.send(f"Welcome {member.mention}, access granted!")
 
+        # Remove the name from the list
         del password_data[exact_name]
         with open("passwords.json", "w", encoding="utf-8") as f:
             json.dump(password_data, f, ensure_ascii=False)
     else:
-        await member.send("The name you provided is not on the list. Please try again or contact admin.")
+        await ctx.send("The name you provided is not on the list. Please try again or contact admin.")
 
 # Command to add a new name to the list (Admin only, Server only)
 @bot.command()
