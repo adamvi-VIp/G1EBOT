@@ -19,6 +19,7 @@ except FileNotFoundError:
 # Set up intents and bot
 intents = discord.Intents.default()
 intents.members = True  # Enable member events
+intents.message_content = True  # Enable reading message content (required for commands)
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # Role and Channel names
