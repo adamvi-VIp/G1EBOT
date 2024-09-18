@@ -42,8 +42,9 @@ def keep_alive():
     t = threading.Thread(target=run_flask)
     t.start()
 
-def remove_diacritics(s):
-    return ''.join(c for c in unicodedata.normalize('NFD', s)
+def normalize_string(s):
+    # Normalize diacritics and convert to lowercase
+    return ''.join(c for c in unicodedata.normalize('NFD', s.lower())
                    if unicodedata.category(c) != 'Mn')
 
 @bot.event
@@ -113,12 +114,12 @@ async def verify(ctx, *, otp: str):
     guild = bot.guilds[0]
     role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
 
-    normalized_otp = remove_diacritics(otp)
+    normalized_otp = normalize_string(otp)
     exact_name = None
 
     # Find the exact name with diacritics
     for name in password_data:
-        if remove_diacritics(name) == normalized_otp:
+        if normalize_string(name) == normalized_otp:
             exact_name = name
             break
 
