@@ -74,8 +74,7 @@ async def dm_unverified_users():
     for member in guild.members:
         if not member.bot and role not in member.roles and str(member.id) not in messaged_users:
             try:
-                await member.send(f"**Welcome** {member.mention}! Please provide your one-time full name to access the G1.E,
-                                   **using command !verify your full name.**")
+                await member.send(f"**Welcome** {member.mention}! Please provide your full name to access the G1.E, **using command !verify your full name.**")
                 messaged_users.add(str(member.id))
                 with open("messaged_users.json", "w", encoding="utf-8") as f:
                     json.dump(list(messaged_users), f, ensure_ascii=False)
@@ -90,8 +89,7 @@ async def on_member_join(member):
 
     if str(member.id) not in messaged_users:
         try:
-            await member.send(f"**Welcome** {member.mention}! Please provide your one-time full name to access the G1.E,
-                               **using command !verify your full name.**")
+            await member.send(f"**Welcome** {member.mention}! Please provide your full name to access the G1.E, **using command !verify your full name.**")
             messaged_users.add(str(member.id))
             with open("messaged_users.json", "w", encoding="utf-8") as f:
                 json.dump(list(messaged_users), f, ensure_ascii=False)
