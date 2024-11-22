@@ -24,7 +24,7 @@ intents.message_content = True  # Enable reading message content (required for c
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # Role and Channel names
-VERIFIED_ROLE_NAME = "Elita Národa"
+VERIFIED_ROLE_NAME = "Authenticated"
 WELCOME_CHANNEL_NAME = "welcome"
 ADMIN_ROLE_NAME = "Admin"  # Replace this with your actual admin role name
 
