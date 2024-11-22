@@ -226,4 +226,4 @@ async def help(ctx):
 
 # Start Flask app and bot
 keep_alive()
-bot.run("MTI4NTY4MjI2ODAzOTU0NDgzMg.G4Ecqv.UkceLHkH4wVEEKi_vmbHZsf7fcB-SL2Ge9l84c")
+bot.run("YOUR_ID")
